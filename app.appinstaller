@@ -1,0 +1,13 @@
+<AppInstaller
+    Uri="https://github.com/przybyla-nikodem/app.appinstaller"
+    Version="1.0.0.0"
+    xmlns="http://schemas.microsoft.com/appx/appinstaller/2018">
+  <MainPackage
+    Name="MyApp"
+    Publisher="CN=TwojCertyfikat"
+    Version="1.0.0.0"
+    Uri="https://github.com/przybyla-nikodem/LlMate_1.0.0.0_x64.msix" />
+  <UpdateSettings>
+    <OnLaunch HoursBetweenUpdateChecks="1" ShowPrompt="true" UpdateBlocksActivation="false"/>
+  </UpdateSettings>
+</AppInstaller>
