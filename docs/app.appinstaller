@@ -4,7 +4,7 @@
     xmlns="http://schemas.microsoft.com/appx/appinstaller/2018">
   <MainPackage
     Name="MyApp"
-    Publisher="CN=Nikodem Przybyla"
+    Publisher="CN=Nikodem Przybyła"
     Version="1.0.0.0"
     Uri="https://github.com/przybyla-nikodem/LlMateWebInstall/MauiApp2_1.0.0.0_x64.msix" />
   <UpdateSettings>
