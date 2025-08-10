@@ -1,15 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<AppInstaller
-    Uri="https://github.com/przybyla-nikodem/LlMateWebInstall/releases/latest/download/app.appinstaller"
-    Version="1.1.0"
-    xmlns="http://schemas.microsoft.com/appx/appinstaller/2018">
-    <MainPackage
-        Name="NikodemPrzybyla.LLMate"
-        Publisher="CN=Nikodem Przybyła"
-        Version="1.1.0"
-		ProcessorArchitecture="x64"
-        Uri="https://github.com/przybyla-nikodem/LlMateWebInstall/releases/latest/download/AutoUpdate.msix" />
-    <UpdateSettings>
-    <OnLaunch HoursBetweenUpdateChecks="0"/>
-  </UpdateSettings>
+<AppInstaller xmlns="http://schemas.microsoft.com/appx/appinstaller/2018" Version="1.0.0.0" Uri="https://github.com/przybyla-nikodem/LlMateWebInstall/releases/latest/download/app.appinstaller">
+	<MainPackage Name="NikodemPrzybyla.LLMate" Publisher="CN=Nikodem Przybyla" Version="1.1.0" ProcessorArchitecture="x64" Uri="https://github.com/przybyla-nikodem/LlMateWebInstall/releases/latest/download/AutoUpdate.msix" />
+	<UpdateSettings>
+		<OnLaunch HoursBetweenUpdateChecks="0" />
+	</UpdateSettings>
 </AppInstaller>
