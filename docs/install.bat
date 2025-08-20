@@ -81,18 +81,20 @@ goto :wait_loop
 :after_pull
 
 
-REM === Krok 5: Uruchomienie pliku .appinstaller===
+REM === Krok 5: Uruchomienie pliku .appinstaller ===
+set "appinstaller_FILE="
+
 for %%f in (*.appinstaller) do (
-    set appinstaller_FILE=%%f
-    goto :foundmsix
+    set "appinstaller_FILE=%%f"
+    goto found
 )
 
-:foundmsix
-if defined MSIX_FILE (
+:found
+if defined appinstaller_FILE (
     echo 🚀 Uruchamianie instalatora AppInstaller: %appinstaller_FILE%
     start "" "%appinstaller_FILE%"
 ) else (
-    echo ❌ Nie znaleziono pliku .msix w folderze.
+    echo ❌ Nie znaleziono pliku .appinstaller w folderze.
     exit /b 1
 )
 
