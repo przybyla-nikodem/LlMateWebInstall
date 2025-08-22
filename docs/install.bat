@@ -1,38 +1,68 @@
 @echo off
 setlocal enabledelayedexpansion
 
-REM === Krok 1: Import certyfikatu ===
-set CERT_FILE=cert.cer
+REM 🔧 Ustaw katalog skryptu jako bieżący
+cd /d "%~dp0"
+
+
+REM === Krok 1: Import certyfikatu do magazynu systemowego ===
+set "CERT_FILE=cert.cer"
 if not exist "%CERT_FILE%" (
     echo ❌ Nie znaleziono pliku %CERT_FILE%
+    pause
     exit /b 1
 )
 
-echo 🔐 Import certyfikatu do TrustedPeople...
-certutil -user -addstore TrustedPeople "%CERT_FILE%"
+echo 🔐 Import certyfikatu do TrustedPeople (komputer lokalny)...
+certutil -addstore TrustedPeople "%CERT_FILE%"
 if %errorlevel% neq 0 (
-    echo ❌ Błąd przy importowaniu certyfikatu
-    exit /b %errorlevel%
+    echo ❌ Błąd przy dodawaniu certyfikatu do TrustedPeople
+    pause
+    exit /b 1
 )
-echo ✅ Certyfikat dodany.
+
+echo 🔐 Import certyfikatu do Trusted Root Certification Authorities (komputer lokalny)...
+certutil -addstore Root "%CERT_FILE%"
+if %errorlevel% neq 0 (
+    echo ❌ Błąd przy dodawaniu certyfikatu do Trusted Root
+    pause
+    exit /b 1
+)
+
+echo ✅ Certyfikat został poprawnie dodany do magazynów systemowych.
+
 
 REM === Krok 2: Sprawdzenie obecności .NET 8.0 Desktop Runtime ===
 echo 🔍 Sprawdzanie obecności .NET 8.0 Desktop Runtime...
-for /f "tokens=*" %%i in ('dotnet --list-runtimes ^| findstr /C:"Microsoft.WindowsDesktop.App 8.0"') do (
-    set FOUND_RUNTIME=1
+
+where dotnet >nul 2>&1
+if %errorlevel% neq 0 (
+    set FOUND_RUNTIME=0
+) else (
+    set FOUND_RUNTIME=0
+    for /f "tokens=*" %%i in ('dotnet --list-runtimes ^| findstr /C:"Microsoft.WindowsDesktop.App 8.0"') do (
+        set FOUND_RUNTIME=1
+    )
 )
 
-if not defined FOUND_RUNTIME (
-    echo ⬇️ .NET 8.0 Desktop Runtime nie znaleziono. Pobieranie instalatora...
-    set RUNTIME_URL=https://download.visualstudio.microsoft.com/download/pr/7d7dceec-b60f-4bc1-b37d-e3241bbedac1/f7c8306b307b03c4be663e93521f12a4/windowsdesktop-runtime-8.0.0-win-x64.exe
-    set RUNTIME_INSTALLER=windowsdesktop-runtime-8.0.0-win-x64.exe
+set "RUNTIME_URL=https://builds.dotnet.microsoft.com/dotnet/WindowsDesktop/8.0.19/windowsdesktop-runtime-8.0.19-win-x64.exe"
+set "RUNTIME_INSTALLER=windowsdesktop-runtime-8.0.19-win-x64.exe"
 
-    powershell -Command "Invoke-WebRequest -Uri '%RUNTIME_URL%' -OutFile '%RUNTIME_INSTALLER%'"
+if %FOUND_RUNTIME%==0 (
+    echo ⬇️ .NET 8.0 Desktop Runtime nie znaleziono. Pobieranie instalatora...
+    echo 🔽 Pobieranie instalatora .NET Runtime za pomocą curl...
+    curl -L -o "%RUNTIME_INSTALLER%" "%RUNTIME_URL%"
+    if %errorlevel% neq 0 (
+        echo ❌ Nie udało się pobrać instalatora .NET Runtime.
+        pause
+        exit /b 1
+    )
     if exist "%RUNTIME_INSTALLER%" (
         echo ▶️ Uruchamianie instalatora .NET Runtime...
         start /wait "" "%RUNTIME_INSTALLER%"
     ) else (
-        echo ❌ Nie udało się pobrać instalatora.
+        echo ❌ Plik instalatora .NET Runtime nie został pobrany.
+        pause
         exit /b 1
     )
 ) else (
@@ -44,51 +74,74 @@ if exist "%LocalAppData%\Ollama" (
     echo ✅ Ollama jest już zainstalowana.
 ) else (
     echo ⬇️ Pobieranie instalatora Ollama...
-    set OLLAMA_URL=https://ollama.com/download/OllamaSetup.exe
-    set OLLAMA_INSTALLER=OllamaSetup.exe
-
-    powershell -Command "Invoke-WebRequest -Uri '%OLLAMA_URL%' -OutFile '%OLLAMA_INSTALLER%'"
+    set "OLLAMA_URL=https://ollama.com/download/OllamaSetup.exe"
+    set "OLLAMA_INSTALLER=OllamaSetup.exe"
+    echo 🔽 Pobieranie instalatora Ollama za pomocą curl...
+    curl -L -o "%OLLAMA_INSTALLER%" "%OLLAMA_URL%"
+    if %errorlevel% neq 0 (
+        echo ❌ Nie udało się pobrać instalatora Ollama.
+        pause
+        exit /b 1
+    )
     if exist "%OLLAMA_INSTALLER%" (
         echo ▶️ Uruchamianie instalatora Ollama...
         start /wait "" "%OLLAMA_INSTALLER%"
     ) else (
-        echo ❌ Nie udało się pobrać instalatora Ollama.
+        echo ❌ Plik instalatora Ollama nie został pobrany.
+        pause
         exit /b 1
     )
 )
 
-REM === Krok 4: Pobranie modelu Ollama podanego przez użytkownika ===
+REM === Krok 3a: Wyszukaj Ollama.exe dynamicznie ===
+set "OLLAMA_DIR=%LocalAppData%\Programs\Ollama"
+set "OLLAMA_EXE="
+
+REM szukamy pliku zaczynając od katalogu instalacyjnego
+for %%F in ("%OLLAMA_DIR%\ollama*.exe") do (
+    set "OLLAMA_EXE=%%F"
+)
+
+if not defined OLLAMA_EXE (
+    echo ❌ Nie znaleziono Ollama.exe w %OLLAMA_DIR%.
+    pause
+    exit /b 1
+)
+
+echo ✅ Znaleziono Ollama.exe: %OLLAMA_EXE%
+
+REM --- natychmiastowe dodanie katalogu do PATH bieżącej sesji ---
+echo %PATH% | find /I "%OLLAMA_DIR%" >nul
+if errorlevel 1 (
+    set "PATH=%PATH%;%OLLAMA_DIR%"
+    echo ✅ Dodano Ollama do PATH bieżącej sesji.
+)
+
+
+REM === Krok 4: Pobranie modelu Ollama ===
 set /p MODEL_NAME=📦 Podaj nazwę modelu do pobrania (np. gemma:2b): 
 
+REM jeśli nic nie wpisano, pomijamy pobieranie
 if "%MODEL_NAME%"=="" (
-    echo ❌ Nie podano nazwy modelu. Pomijam pobieranie.
+    echo ℹ️ Nie podano nazwy modelu. Pomijam pobieranie.
     goto :after_pull
 )
 
 echo ⬇️ Pobieranie modelu: %MODEL_NAME% ...
-ollama pull %MODEL_NAME%
-
-REM Czekaj aż model pojawi się w liście
-echo 🕒 Oczekiwanie na zakończenie pobierania...
-:wait_loop
-timeout /t 5 >nul
-for /f %%M in ('ollama list ^| findstr /C:"%MODEL_NAME%"') do (
-    echo ✅ Model %MODEL_NAME% jest gotowy.
-    goto :after_pull
-)
-goto :wait_loop
+"%OLLAMA_EXE%" pull %MODEL_NAME%
 
 :after_pull
 
 
+echo ⬇️ Pobieranie modelu: %MODEL_NAME% ...
+"%OLLAMA_EXE%" pull %MODEL_NAME%
+
 REM === Krok 5: Uruchomienie pliku .appinstaller ===
 set "appinstaller_FILE="
-
 for %%f in (*.appinstaller) do (
     set "appinstaller_FILE=%%f"
     goto found
 )
-
 :found
 if defined appinstaller_FILE (
     echo 🚀 Uruchamianie instalatora AppInstaller: %appinstaller_FILE%
